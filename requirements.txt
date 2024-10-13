@@ -1,4 +1,5 @@
 streamlit
 language-tool-python
 groq
+java
 
