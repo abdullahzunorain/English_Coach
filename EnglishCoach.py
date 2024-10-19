@@ -1,36 +1,37 @@
-import os 
-import streamlit as st
-import language_tool_python
 import os
+import streamlit as st
+from spellchecker import SpellChecker
 from groq import Groq
 import re
+
 # Initialize the Groq client
 client = Groq(api_key="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")
 class GrammarCorrector:
-    def __init__(self, language='en-US'):
-        self.tool = language_tool_python.LanguageTool(language)
+    def __init__(self):
+        self.spell = SpellChecker()
 
     def identify_mistakes(self, text):
-        matches = self.tool.check(text)
+        words = re.findall(r'\b\w+\b', text.lower())
+        misspelled = self.spell.unknown(words)
         mistakes = []
 
-        for match in matches:
-            start = match.offset
-            end = start + match.errorLength
-            mistake = text[start:end]
-            mistakes.append((mistake, start, end))
+        for word in misspelled:
+            for match in re.finditer(r'\b' + re.escape(word) + r'\b', text.lower()):
+                start = match.start()
+                end = match.end()
+                original_word = text[start:end]
+                mistakes.append((original_word, start, end))
 
         return mistakes
 
     def report_mistakes(self, text):
         mistakes = self.identify_mistakes(text)
-        st.write("\n--- Mistakes Found ---")
+        st.write("\n--- Spelling Mistakes Found ---")
         for i, (mistake, start, end) in enumerate(mistakes, start=1):
-            st.write(f"{i}. Mistake: '{mistake}' at position {start}-{end}")
+            correction = self.spell.correction(mistake.lower())
+            st.write(f"{i}. Misspelled: '{mistake}' at position {start}-{end}.")
 
         return mistakes
-
-
 # App Configuration
 st.set_page_config(page_title="EnglishCoach", layout="wide")
 st.title("EnglishCoach: Improve Your Communication Skills")
